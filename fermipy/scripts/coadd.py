@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from __future__ import absolute_import, division, print_function
 
+import os
 import argparse
 from fermipy import merge_utils
 from fermipy import fits_utils
@@ -31,8 +32,10 @@ def main():
         raise TypeError("Could not read projection from file %s"%args.files[0])
 
     if args.output:
+        # FIXME, stupid hack for long filenames
         hdulist.writeto(args.output, clobber=args.clobber)
-
+        #hdulist.writeto('temp_coadd.fits', clobber=True)
+        #os.rename('temp_coadd.fits', args.output)
 
 if __name__ == '__main__':
     main()
