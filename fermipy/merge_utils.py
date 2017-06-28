@@ -16,9 +16,15 @@ def update_null_primary(hdu_in, hdu=None):
     """
     if hdu is None:
         hdu = fits.PrimaryHDU(header=hdu_in.header)
+        try:
+            hdu.header.remove('FILENAME')
+            hdu.update_header()
+        except KeyError:
+            pass        
     else:
         hdu = hdu_in
-        hdu.header.remove('FILENAME')
+
+    
     return hdu
 
 
@@ -30,6 +36,11 @@ def update_primary(hdu_in, hdu=None):
     """
     if hdu is None:
         hdu = fits.PrimaryHDU(data=hdu_in.data, header=hdu_in.header)
+        try:
+            hdu.header.remove('FILENAME')
+            hdu.update_header()   
+        except KeyError:
+            pass
     else:
         hdu.data += hdu_in.data        
     return hdu
