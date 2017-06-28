@@ -182,8 +182,10 @@ class function_prior(prior_functor):
         """ The normalization 
         i.e., the intergral of the function over the normalization_range 
         """
+        #FIXME
         norm_r = self.normalization_range()
         return quad(self, norm_r[0], norm_r[1])[0]
+        #return 1.
 
     def mean(self):
         """ The mean value of the function.
