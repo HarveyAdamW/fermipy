@@ -422,6 +422,11 @@ class HPX(object):
             else:
                 return 'GALPROP2'
 
+        # Check for the INDXSCHM keyword
+        indxschm = header.get('INDXSCHM', None)
+        if indxschm == 'SPARSE':
+            return 'FGST_SRCMAP_SPARSE'
+
         # Check the name of the first column
         colname = header['TTYPE1']
         if colname == 'PIX':
@@ -536,19 +541,15 @@ class HPX(object):
         if self.conv.convname == 'FGST_SRCMAP_SPARSE':
             nonzero = data.nonzero()
             nfilled = len(nonzero[0])
-            print('Nfilled ', nfilled)
             if len(shape) == 1:
-                nonzero = nonzero[0]
-                cols.append(fits.Column("KEY", "%iJ" %
-                                        nfilled, array=nonzero.reshape(1, nfilled)))
-                cols.append(fits.Column("VALUE", "%iE" % nfilled, array=data[
-                            nonzero].astype(float).reshape(1, nfilled)))
+                cols.append(fits.Column("PIX", "J", array=nonzero[0].astype(int)))
+                cols.append(fits.Column("VALUE", "E", array=data.flat[nonzero].astype(float).reshape(nfilled)))
             elif len(shape) == 2:
-                nonzero = self._npix * nonzero[0] + nonzero[1]
-                cols.append(fits.Column("KEY", "%iJ" %
-                                        nfilled, array=nonzero.reshape(1, nfilled)))
-                cols.append(fits.Column("VALUE", "%iE" % nfilled, array=data.flat[
-                            nonzero].astype(float).reshape(1, nfilled)))
+                keys = self._npix * nonzero[0] + nonzero[1]
+                cols.append(fits.Column("PIX", "J", array=nonzero[0].reshape(nfilled)))
+                cols.append(fits.Column("CHAN", "I", array=nonzero[1].reshape(nfilled)))
+                cols.append(fits.Column("VALUE", "E",
+                                        array=data.flat[keys].astype(float).reshape(nfilled)))
             else:
                 raise Exception("HPX.write_fits only handles 1D and 2D maps")
 
@@ -781,8 +782,11 @@ class HPX(object):
     def get_sky_dirs(self):
 
         lonlat = self.get_sky_coords()
-        return SkyCoord(ra=lonlat.T[0], dec=lonlat.T[1], unit='deg')
-
+        if self.coordsys == 'CEL':        
+            return SkyCoord(ra=lonlat.T[0], dec=lonlat.T[1], unit='deg', frame='icrs')
+        else:
+            return SkyCoord(l=lonlat.T[0], b=lonlat.T[1], unit='deg', frame='galactic')
+        
     def get_pixel_indices(self, lats, lons):
         """ "Return the indices in the flat array corresponding to a set of coordinates """
         theta = np.radians(90. - lats)
@@ -819,7 +823,7 @@ class HpxToWcsMapping(object):
             self._mult_val = mapping_data['mult_val']
             self._npix = mapping_data['npix']
         self._lmap = self._hpx[self._ipixs]
-        self._valid = self._lmap > 0
+        self._valid = self._lmap >= 0
 
     @property
     def hpx(self):
